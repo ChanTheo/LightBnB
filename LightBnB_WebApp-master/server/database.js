@@ -140,26 +140,26 @@ const getAllProperties = function(options, limit = 10) {
   let queryString = `
   SELECT properties.*, avg(property_reviews.rating) as average_rating
   FROM properties
-  JOIN property_reviews ON properties.id = property_id `;
+  LEFT JOIN property_reviews ON properties.id = property_reviews.property_id `;
 
   if (options.city) {
     queryParams.push(`%${options.city}%`);
     queryString += `WHERE city LIKE $${queryParams.length} `;
   } 
-  if (options.owner_id) {
+  if (options.owner_id){
 
-    if(queryParams.length === 1){
+    if(queryParams.length === 0){
       queryString += `WHERE `
     } else {
       queryString += `AND `
     }
-      queryParams.push(`%${options.owner_id}%`)
+      queryParams.push(`${options.owner_id}`)
       
-      queryString += `owner_id LIKE $${queryParams.length} `
+      queryString += `owner_id = $${queryParams.length} `
   } 
   if (options.minimum_price_per_night && options.maximum_price_per_night) {
 
-    if(queryParams.length === 1){
+    if(queryParams.length === 0){
       queryString += `WHERE `
     } else {
       queryString += `AND `
@@ -172,7 +172,7 @@ const getAllProperties = function(options, limit = 10) {
   }
 
   if (options.minimum_rating) {
-    if(queryParams.length === 1) {
+    if(queryParams.length === 0) {
       queryString += `WHERE `
     } else {
       queryString += `AND `
@@ -215,10 +215,34 @@ exports.getAllProperties = getAllProperties;
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
+//[ 'title',
+// 'description',
+// 'number_of_bedrooms',
+// 'number_of_bathrooms',
+// 'parking_spaces',
+// 'cost_per_night',
+// 'thumbnail_photo_url',
+// 'cover_photo_url',
+// 'street',
+// 'country',
+// 'city',
+// 'province',
+// 'post_code',
+// 'owner_id' ]
+
+// Could do property.keys then evaluate the length then 
+
 const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+  const queryString = `INSERT INTO properties (title, description, number_of_bedrooms, number_of_bathrooms, parking_spaces, cost_per_night, thumbnail_photo_url, cover_photo_url, street, country, city, province, post_code, owner_id) 
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`
+  const values = Object.values(property) 
+  console.log(values)
+  // console.log(values.length)
+ 
+
+  return pool.query(queryString, values)
+  .then(res => res.rows)
+  // (property.owner_id, property.title, property.description, property.thumbnail_photo_url, property.cover_photo_url, property.cost_per_night, property.parking_spaces, property.number_of_bathrooms, property.number_of_bedrooms, property.country, property.street, property.city, property.province, property.post_code)
+  
 }
 exports.addProperty = addProperty;
